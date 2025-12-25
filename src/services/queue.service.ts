@@ -1,12 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface QueueModel {
   id: string;
   x: number;
   y: number;
-  size: number;
+  size: number; // Frontend uses 'size'
+}
+
+// Backend response type
+interface QueueResponse {
+  id: string;
+  x: number;
+  y: number;
+  currentSize: number; // Backend returns 'currentSize'
 }
 
 @Injectable({ providedIn: 'root' })
@@ -17,14 +26,25 @@ export class QueueService {
   constructor(private http: HttpClient) {}
 
   createQueue(x: number, y: number): Observable<QueueModel> {
-    return this.http.post<QueueModel>(this.api, { x, y });
+    return this.http.post<QueueResponse>(this.api, { x, y }).pipe(
+      map(q => ({ ...q, size: q.currentSize || 0 }))
+    );
   }
 
   getQueues(): Observable<QueueModel[]> {
-    return this.http.get<QueueModel[]>(this.api);
+    return this.http.get<QueueResponse[]>(this.api).pipe(
+      map(queues => queues.map(q => ({ 
+        id: q.id, 
+        x: q.x, 
+        y: q.y, 
+        size: q.currentSize || 0 
+      })))
+    );
   }
 
-  updatePosition(id: string, x: number, y: number) {
-    return this.http.put(`${this.api}/${id}/position`, { x, y });
+  updatePosition(id: string, x: number, y: number): Observable<QueueModel> {
+    return this.http.put<QueueResponse>(`${this.api}/${id}/position`, { x, y }).pipe(
+      map(q => ({ ...q, size: q.currentSize || 0 }))
+    );
   }
 }

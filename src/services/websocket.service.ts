@@ -1,6 +1,18 @@
 import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
 import Stomp from 'stompjs';
 import SockJS from 'sockjs-client';
+
+export interface QueueUpdate {
+  queueId: string;
+  currentSize: number;
+}
+
+export interface MachineUpdate {
+  machineId: string;
+  status: string;
+  productColor: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +21,10 @@ export class WebSocketService {
   private stompClient: any;
   private readonly webSocketUrl = 'http://localhost:8080/ws';
 
+  // Observables for components to subscribe
+  public queueUpdates$ = new Subject<QueueUpdate>();
+  public machineUpdates$ = new Subject<MachineUpdate>();
+
   constructor() { }
 
   public connect(): void {
@@ -16,45 +32,49 @@ export class WebSocketService {
     this.stompClient = Stomp.over(socket);
 
     this.stompClient.connect({}, (frame: any) => {
-      console.log('Connected: ' + frame);
-      this.stompClient.subscribe('/topic/pong', (message: any) => {
-        console.log('Received: ', message.body);
-      });
+      console.log('✅ WebSocket Connected:', frame);
+      
+      // Subscribe to queue updates
       this.stompClient.subscribe('/topic/queues', (message: any) => {
-        console.log('Queue Update:', message.body);
+        const update = JSON.parse(message.body);
+        console.log('📦 Queue Update:', update);
+        this.queueUpdates$.next(update);
       });
+      
+      // Subscribe to machine updates
       this.stompClient.subscribe('/topic/machines', (message: any) => {
-        console.log('Machine Update:', message.body);
+        const update = JSON.parse(message.body);
+        console.log('⚙️ Machine Update:', update);
+        this.machineUpdates$.next(update);
       });
     }, (error: any) => {
-      console.error('Error connecting to WebSocket', error);
+      console.error('❌ WebSocket Error:', error);
     });
   }
 
-  public sendPing(): void {
-    if (this.stompClient && this.stompClient.connected) {
-      this.stompClient.send('/app/ping', {}, 'ping');
-    } else {
-      console.error('STOMP client is not connected.');
-    }
-  }
-
   public sendTestQueue(): void {
-    if (this.stompClient && this.stompClient.connected) {
+    if (this.stompClient?.connected) {
       this.stompClient.send('/app/test/queue', {}, {});
     }
   }
 
   public sendTestMachine(): void {
-    if (this.stompClient && this.stompClient.connected) {
+    if (this.stompClient?.connected) {
       this.stompClient.send('/app/test/machine', {}, {});
     }
   }
 
   public disconnect(): void {
-    if (this.stompClient !== null) {
+    if (this.stompClient) {
       this.stompClient.disconnect();
+      console.log("Disconnected");
     }
-    console.log("Disconnected");
   }
+
+public sendPing(): void {
+  if (this.stompClient?.connected) {
+    this.stompClient.send('/app/ping', {}, JSON.stringify({ type: 'ping' }));
+  }
+}
+
 }
