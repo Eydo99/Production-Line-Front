@@ -9,15 +9,37 @@
   </div>
 
   <div class="flex items-center gap-2">
+    <!-- Add Queue Button -->
     <button
       (click)="addQueue()"
-      class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2">
+      class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
       <span class="material-symbols-outlined text-lg">layers</span>
       Add Queue
     </button>
 
+    <!-- Add Machine Button -->
     <button
-      class="h-9 px-4 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold flex items-center gap-2">
+      (click)="addMachine()"
+      class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
+      <span class="material-symbols-outlined text-lg">precision_manufacturing</span>
+      Add Machine
+    </button>
+
+    <!-- Connection Mode Toggle -->
+    <button
+      (click)="toggleConnectionMode()"
+      [class.bg-primary]="connectingMode"
+      [class.text-white]="connectingMode"
+      [class.bg-slate-100]="!connectingMode"
+      [class.hover:bg-slate-200]="!connectingMode"
+      class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+      <span class="material-symbols-outlined text-lg">cable</span>
+      {{ connectingMode ? 'Connecting...' : 'Connect' }}
+    </button>
+
+    <!-- Run Button (Person 3 will wire this) -->
+    <button
+      class="h-9 px-4 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold flex items-center gap-2 transition-colors">
       <span class="material-symbols-outlined text-lg">play_arrow</span>
       Run
     </button>
@@ -29,30 +51,90 @@
 <div class="flex h-[calc(100vh-64px)] overflow-hidden">
 
   <!-- CANVAS -->
-  <main class="relative flex-1 bg-slate-50 overflow-hidden">
+  <main class="relative flex-1 bg-slate-50 overflow-hidden canvas-background">
 
-    <!-- GRID -->
+    <!-- GRID BACKGROUND -->
     <div
-      class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:24px_24px] opacity-60">
+      class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:24px_24px] opacity-60 pointer-events-none">
     </div>
 
-    <!-- SVG CONNECTION LAYER -->
-    <svg class="absolute inset-0 w-full h-full pointer-events-none">
-      <!-- connections will be dynamic later -->
-    </svg>
+    <!-- Zoom Controls -->
+    <app-zoom-controls
+      (zoomIn)="handleZoomIn()"
+      (zoomOut)="handleZoomOut()"
+      (resetZoom)="handleResetZoom()">
+    </app-zoom-controls>
 
-    <!-- QUEUES -->
-    <app-queue-node
-      *ngFor="let q of queues"
-      [queue]="q"
-      (moved)="onMoved(q, $event)">
-    </app-queue-node>
+    <!-- Canvas Container with Transform -->
+    <div 
+      class="relative w-full h-full"
+      [style.transform]="getCanvasTransform()"
+      style="transform-origin: center center; transition: transform 0.1s ease-out;">
+
+      <!-- SVG CONNECTION LAYER -->
+      <app-connection-line [connections]="connections"></app-connection-line>
+
+      <!-- QUEUES -->
+      <app-queue-node
+        *ngFor="let q of queues"
+        [queue]="q"
+        [class.ring-4]="selectedNode?.id === q.id"
+        [class.ring-primary]="selectedNode?.id === q.id"
+        (moved)="onQueueMoved(q, $event)"
+        (click)="selectNodeForConnection(q.id, 'queue')">
+      </app-queue-node>
+
+      <!-- MACHINES -->
+      <app-machine-node
+        *ngFor="let m of machines"
+        [machine]="m"
+        [class.ring-4]="selectedNode?.id === m.id"
+        [class.ring-primary]="selectedNode?.id === m.id"
+        (moved)="onMachineMoved(m, $event)"
+        (click)="selectNodeForConnection(m.id, 'machine')">
+      </app-machine-node>
+
+    </div>
+
+    <!-- Connection Mode Indicator -->
+    <div 
+      *ngIf="connectingMode"
+      class="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-20 flex items-center gap-2 animate-pulse">
+      <span class="material-symbols-outlined">link</span>
+      <span class="font-semibold">
+        {{ selectedNode ? 'Select target node (Q→M→Q pattern)' : 'Select first node to connect' }}
+      </span>
+    </div>
+
+    <!-- Statistics Display -->
+    <div class="absolute top-4 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1 z-10">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+        <span class="text-slate-600">Queues: <strong>{{ queues.length }}</strong></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+        <span class="text-slate-600">Machines: <strong>{{ machines.length }}</strong></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+        <span class="text-slate-600">Connections: <strong>{{ connections.length }}</strong></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+        <span class="text-slate-600">Zoom: <strong>{{ (scale * 100).toFixed(0) }}%</strong></span>
+      </div>
+    </div>
 
   </main>
 
-  <!-- RIGHT SIDEBAR (STATIC PLACEHOLDER) -->
-  <aside class="w-[320px] bg-white border-l border-slate-200">
-    <!-- Person 2 owns this -->
+  <!-- RIGHT SIDEBAR (Person 2 will implement) -->
+  <aside class="w-[320px] bg-white border-l border-slate-200 p-4">
+    <div class="text-center text-slate-400 mt-8">
+      <span class="material-symbols-outlined text-4xl">construction</span>
+      <p class="mt-2 text-sm">Properties Panel</p>
+      <p class="text-xs">Person 2's Component</p>
+    </div>
   </aside>
 
 </div>
