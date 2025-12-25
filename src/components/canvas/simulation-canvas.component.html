@@ -1,0 +1,58 @@
+<!-- TOP TOOLBAR -->
+<div class="h-16 bg-white border-b border-slate-200 flex items-center px-4 justify-between shadow-sm">
+
+  <div class="flex items-center gap-4">
+    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+      <span class="material-symbols-outlined">schema</span>
+    </div>
+    <h1 class="text-lg font-bold">SimBuilder</h1>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <button
+      (click)="addQueue()"
+      class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2">
+      <span class="material-symbols-outlined text-lg">layers</span>
+      Add Queue
+    </button>
+
+    <button
+      class="h-9 px-4 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold flex items-center gap-2">
+      <span class="material-symbols-outlined text-lg">play_arrow</span>
+      Run
+    </button>
+  </div>
+
+</div>
+
+<!-- WORKSPACE -->
+<div class="flex h-[calc(100vh-64px)] overflow-hidden">
+
+  <!-- CANVAS -->
+  <main class="relative flex-1 bg-slate-50 overflow-hidden">
+
+    <!-- GRID -->
+    <div
+      class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:24px_24px] opacity-60">
+    </div>
+
+    <!-- SVG CONNECTION LAYER -->
+    <svg class="absolute inset-0 w-full h-full pointer-events-none">
+      <!-- connections will be dynamic later -->
+    </svg>
+
+    <!-- QUEUES -->
+    <app-queue-node
+      *ngFor="let q of queues"
+      [queue]="q"
+      (moved)="onMoved(q, $event)">
+    </app-queue-node>
+
+  </main>
+
+  <!-- RIGHT SIDEBAR (STATIC PLACEHOLDER) -->
+  <aside class="w-[320px] bg-white border-l border-slate-200">
+    <!-- Person 2 owns this -->
+  </aside>
+
+</div>
