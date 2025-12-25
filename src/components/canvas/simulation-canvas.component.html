@@ -37,11 +37,25 @@
       {{ connectingMode ? 'Connecting...' : 'Connect' }}
     </button>
 
-    <!-- Run Button (Person 3 will wire this) -->
+    <!-- Run Button -->
     <button
-      class="h-9 px-4 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold flex items-center gap-2 transition-colors">
-      <span class="material-symbols-outlined text-lg">play_arrow</span>
-      Run
+      (click)="onStartSimulation()"
+      [disabled]="isRunning"
+      [class.opacity-50]="isRunning"
+      class="h-9 px-4 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold flex items-center gap-2 transition-colors disabled:cursor-not-allowed">
+      <span class="material-symbols-outlined text-lg">
+        {{ isRunning ? 'pause' : 'play_arrow' }}
+      </span>
+      {{ isRunning ? 'Running...' : 'Run' }}
+    </button>
+
+    <!-- Stop Button -->
+    <button
+      *ngIf="isRunning"
+      (click)="onStopSimulation()"
+      class="h-9 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold flex items-center gap-2 transition-colors">
+      <span class="material-symbols-outlined text-lg">stop</span>
+      Stop
     </button>
   </div>
 
@@ -51,7 +65,7 @@
 <div class="flex h-[calc(100vh-64px)] overflow-hidden">
 
   <!-- CANVAS -->
-  <main class="relative flex-1 bg-slate-50 overflow-hidden canvas-background">
+  <main class="relative flex-1 bg-slate-50 overflow-hidden">
 
     <!-- GRID BACKGROUND -->
     <div
@@ -65,35 +79,41 @@
       (resetZoom)="handleResetZoom()">
     </app-zoom-controls>
 
-    <!-- Canvas Container with Transform -->
+    <!-- Canvas Container WITH TRANSFORM -->
     <div 
-      class="relative w-full h-full"
+      class="relative w-full h-full canvas-container"
       [style.transform]="getCanvasTransform()"
       style="transform-origin: center center; transition: transform 0.1s ease-out;">
 
       <!-- SVG CONNECTION LAYER -->
       <app-connection-line [connections]="connections"></app-connection-line>
 
-      <!-- QUEUES -->
+      <!-- QUEUES - Pass scale, panX, panY -->
       <app-queue-node
         *ngFor="let q of queues"
         [queue]="q"
+        [canvasScale]="scale"
+        [canvasPanX]="panX"
+        [canvasPanY]="panY"
         [class.ring-4]="selectedNode?.id === q.id"
         [class.ring-primary]="selectedNode?.id === q.id"
         (moved)="onQueueMoved(q, $event)"
         (click)="selectNodeForConnection(q.id, 'queue')">
       </app-queue-node>
 
-      <!-- MACHINES -->
-      <app-machine-node
+      <!-- MACHINES - Pass scale, panX, panY -->
+     <!-- <app-machine-node
         *ngFor="let m of machines"
         [machine]="m"
+        [canvasScale]="scale"
+        [canvasPanX]="panX"
+        [canvasPanY]="panY"
         [class.ring-4]="selectedNode?.id === m.id"
         [class.ring-primary]="selectedNode?.id === m.id"
         (moved)="onMachineMoved(m, $event)"
         (click)="selectNodeForConnection(m.id, 'machine')">
       </app-machine-node>
-
+    -->
     </div>
 
     <!-- Connection Mode Indicator -->
@@ -128,12 +148,18 @@
 
   </main>
 
-  <!-- RIGHT SIDEBAR (Person 2 will implement) -->
+  <!-- RIGHT SIDEBAR -->
   <aside class="w-[320px] bg-white border-l border-slate-200 p-4">
     <div class="text-center text-slate-400 mt-8">
       <span class="material-symbols-outlined text-4xl">construction</span>
       <p class="mt-2 text-sm">Properties Panel</p>
-      <p class="text-xs">Person 2's Component</p>
+     <p class="text-xs text-slate-600 font-bold">
+
+         حاجتك يبلال اهي بقية ملف الكانفاس اشتغل بال tailwind ولو معرفتش شلها واعمل ملف جديد
+
+         متبعبصش في ال layout  
+
+      </p>
     </div>
   </aside>
 

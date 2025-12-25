@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';  // ← IMPORT THIS
 import { Subscription } from 'rxjs';
 import { QueueService, QueueModel } from '../../services/queue.service';
 import { MachineService, MachineModel } from '../../services/machine.service';
@@ -28,6 +29,7 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   queues: QueueModel[] = [];
   machines: MachineModel[] = [];
   connections: ConnectionModel[] = [];
+  isRunning = false;  // ← YOU ALREADY HAVE THIS
   
   // Connection creation state
   connectingMode = false;
@@ -44,11 +46,13 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   private queueUpdateSub?: Subscription;
   private machineUpdateSub?: Subscription;
 
+  // ← FIX YOUR CONSTRUCTOR HERE
   constructor(
     private queueService: QueueService,
     private machineService: MachineService,
     private connectionService: ConnectionService,
-    private wsService: WebSocketService
+    private wsService: WebSocketService,
+    private http: HttpClient  // ← ADD THIS LINE!
   ) {}
 
   ngOnInit() {
@@ -135,11 +139,9 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     if (!this.connectingMode) return;
 
     if (!this.selectedNode) {
-      // First node selected
       this.selectedNode = { id, type };
       console.log('✅ Selected first node:', this.selectedNode);
     } else {
-      // Second node selected - create connection
       const fromId = this.selectedNode.id;
       const toId = id;
 
@@ -201,7 +203,6 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
 
   @HostListener('mousedown', ['$event'])
   onCanvasMouseDown(event: MouseEvent) {
-    // Start panning only if clicking on canvas background (not on nodes)
     if ((event.target as HTMLElement).classList.contains('canvas-background')) {
       this.isPanning = true;
       this.lastPanX = event.clientX;
@@ -248,7 +249,6 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
 
   // ========== REAL-TIME UPDATES ==========
   private subscribeToUpdates() {
-    // Queue updates
     this.queueUpdateSub = this.wsService.queueUpdates$.subscribe(update => {
       const queue = this.queues.find(q => q.id === update.queueId);
       if (queue) {
@@ -257,12 +257,33 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Machine updates
     this.machineUpdateSub = this.wsService.machineUpdates$.subscribe(update => {
       const machine = this.machines.find(m => m.id === update.machineId);
       if (machine) {
         machine.status = update.status as any;
         console.log(`⚙️ Updated ${machine.id} status: ${machine.status}`);
+      }
+    });
+  }
+
+  // ========== SIMULATION CONTROL ==========
+  onStartSimulation() {
+    this.http.post('http://localhost:8080/api/simulation/start', {}).subscribe({
+      next: () => {
+        this.isRunning = true;
+        console.log('✅ Simulation started');
+      },
+      error: (err) => {
+        alert('Error: ' + (err.error?.error || 'Failed to start'));
+      }
+    });
+  }
+
+  onStopSimulation() {
+    this.http.post('http://localhost:8080/api/simulation/stop', {}).subscribe({
+      next: () => {
+        this.isRunning = false;
+        console.log('⏸️ Simulation stopped');
       }
     });
   }

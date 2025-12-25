@@ -3,16 +3,20 @@ import {
   ElementRef,
   EventEmitter,
   HostListener,
-  Output
+  Output,
+  OnDestroy,
+  Input
 } from '@angular/core';
 
 @Directive({
   selector: '[appDraggable]',
   standalone: true
 })
-export class DraggableDirective {
-
+export class DraggableDirective implements OnDestroy {
   @Output() dragEnd = new EventEmitter<{ x: number; y: number }>();
+  @Input() canvasScale = 1; // Compensate for zoom
+  @Input() canvasPanX = 0;   // Compensate for pan X
+  @Input() canvasPanY = 0;   // Compensate for pan Y
 
   private dragging = false;
   private startX = 0;
@@ -22,38 +26,60 @@ export class DraggableDirective {
 
   constructor(private el: ElementRef<HTMLElement>) {
     this.el.nativeElement.style.position = 'absolute';
+    this.el.nativeElement.style.cursor = 'grab';
   }
 
   @HostListener('mousedown', ['$event'])
   onMouseDown(event: MouseEvent) {
+    // Prevent dragging if clicking on a button or other interactive element
+    if ((event.target as HTMLElement).tagName === 'BUTTON') {
+      return;
+    }
+
     event.preventDefault();
+    event.stopPropagation();
 
     this.dragging = true;
     this.startX = event.clientX;
     this.startY = event.clientY;
 
-    const rect = this.el.nativeElement.getBoundingClientRect();
-    this.initialLeft = rect.left;
-    this.initialTop = rect.top;
+    // Get current position
+    this.initialLeft = this.el.nativeElement.offsetLeft;
+    this.initialTop = this.el.nativeElement.offsetTop;
 
-    document.addEventListener('mousemove', this.onMouseMove);
+    this.el.nativeElement.style.cursor = 'grabbing';
+    this.el.nativeElement.style.userSelect = 'none';
+    this.el.nativeElement.style.zIndex = '1000';
+
+    // Add listeners to document so dragging works even if mouse leaves element
+    document.addEventListener('mousemove', this.onMouseMove, { passive: false });
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
   onMouseMove = (event: MouseEvent) => {
     if (!this.dragging) return;
 
-    const dx = event.clientX - this.startX;
-    const dy = event.clientY - this.startY;
+    event.preventDefault();
 
-    this.el.nativeElement.style.left = this.initialLeft + dx + 'px';
-    this.el.nativeElement.style.top = this.initialTop + dy + 'px';
+    // Calculate mouse movement compensating for scale
+    const dx = (event.clientX - this.startX) / this.canvasScale;
+    const dy = (event.clientY - this.startY) / this.canvasScale;
+
+    const newLeft = this.initialLeft + dx;
+    const newTop = this.initialTop + dy;
+
+    // Apply new position
+    this.el.nativeElement.style.left = newLeft + 'px';
+    this.el.nativeElement.style.top = newTop + 'px';
   };
 
   onMouseUp = () => {
     if (!this.dragging) return;
 
     this.dragging = false;
+    this.el.nativeElement.style.cursor = 'grab';
+    this.el.nativeElement.style.userSelect = '';
+    this.el.nativeElement.style.zIndex = '';
 
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseup', this.onMouseUp);
@@ -61,7 +87,11 @@ export class DraggableDirective {
     const left = this.el.nativeElement.offsetLeft;
     const top = this.el.nativeElement.offsetTop;
 
-    // 🔴 THIS IS THE IMPORTANT PART
     this.dragEnd.emit({ x: left, y: top });
   };
+
+  ngOnDestroy() {
+    document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mouseup', this.onMouseUp);
+  }
 }

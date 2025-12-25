@@ -18,6 +18,9 @@ import { SelectableDirective } from '../../../directives/selectable.directive';
 export class QueueNodeComponent {
 
   @Input() queue!: QueueModel;
+  @Input() canvasScale = 1;  // Add scale input
+  @Input() canvasPanX = 0;   // Add pan X input
+  @Input() canvasPanY = 0;   // Add pan Y input
 
   @Output() moved = new EventEmitter<{ x: number; y: number }>();
 
