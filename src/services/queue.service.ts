@@ -47,4 +47,7 @@ export class QueueService {
       map(q => ({ ...q, size: q.currentSize || 0 }))
     );
   }
+  deleteQueue(id: string): Observable<{ message: string; id: string }> {
+    return this.http.delete<{ message: string; id: string }>(`${this.api}/${id}`);
+  }
 }
