@@ -10,16 +10,18 @@ import { QueueNodeComponent } from './queue-node/queue-node.component';
 import { MachineNodeComponent } from './machine-node/machine-node.component';
 import { ConnectionLineComponent } from './connection-line/connection-line.component';
 import { ZoomControlsComponent } from '../zoom-controls/zoom-controls.component';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-simulation-canvas',
   standalone: true,
   imports: [
-    CommonModule, 
-    QueueNodeComponent, 
+    CommonModule,
+    QueueNodeComponent,
     MachineNodeComponent,
     ConnectionLineComponent,
-    ZoomControlsComponent
+    ZoomControlsComponent,
+    FormsModule
   ],
   templateUrl: './simulation-canvas.component.html',
   styleUrls: ['./simulation-canvas.component.css']
@@ -30,11 +32,19 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   machines: MachineModel[] = [];
   connections: ConnectionModel[] = [];
   isRunning = false;  // ← YOU ALREADY HAVE THIS
-  
+
   // Connection creation state
   connectingMode = false;
+
   selectedNode: { id: string; type: 'queue' | 'machine' } | null = null;
-  
+  selectedNodeDetails: {
+    type: 'queue' | 'machine';
+    data: QueueModel | MachineModel;
+  } | null = null;
+
+  newCapacity: number = 10;
+  newServiceTime: number = 2;
+
   // Zoom & Pan state
   scale = 1;
   panX = 0;
@@ -53,7 +63,7 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     private connectionService: ConnectionService,
     private wsService: WebSocketService,
     private http: HttpClient  // ← ADD THIS LINE!
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadQueues();
@@ -96,7 +106,7 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   addQueue() {
     const randomX = Math.floor(Math.random() * 400) + 100;
     const randomY = Math.floor(Math.random() * 300) + 100;
-    
+
     this.queueService.createQueue(randomX, randomY).subscribe(queue => {
       console.log('➕ Queue created:', queue);
       this.queues.push(queue);
@@ -106,7 +116,7 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   addMachine() {
     const randomX = Math.floor(Math.random() * 400) + 300;
     const randomY = Math.floor(Math.random() * 300) + 100;
-    
+
     this.machineService.createMachine(randomX, randomY).subscribe(machine => {
       console.log('➕ Machine created:', machine);
       this.machines.push(machine);
@@ -124,7 +134,7 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   onMachineMoved(machine: MachineModel, pos: { x: number; y: number }) {
     machine.x = pos.x;
     machine.y = pos.y;
-    this.machineService.updatePosition(machine.id, pos.x, pos.y).subscribe();
+    this.machineService.updatePosition(machine.name, pos.x, pos.y).subscribe();
     this.updateConnectionPositions();
   }
 
@@ -136,6 +146,8 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   }
 
   selectNodeForConnection(id: string, type: 'queue' | 'machine') {
+    // Show properties panel whenever a node is clicked
+    this.selectNodeForProperties(id, type);
     if (!this.connectingMode) return;
 
     if (!this.selectedNode) {
@@ -170,7 +182,7 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     this.connections.forEach(conn => {
       const fromNode = this.getNodeById(conn.fromId);
       const toNode = this.getNodeById(conn.toId);
-      
+
       if (fromNode && toNode) {
         conn.fromX = fromNode.x;
         conn.fromY = fromNode.y;
@@ -183,10 +195,10 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   private getNodeById(id: string): { x: number; y: number } | null {
     const queue = this.queues.find(q => q.id === id);
     if (queue) return queue;
-    
+
     const machine = this.machines.find(m => m.id === id);
     if (machine) return machine;
-    
+
     return null;
   }
 
@@ -194,10 +206,10 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   @HostListener('wheel', ['$event'])
   onWheel(event: WheelEvent) {
     event.preventDefault();
-    
+
     const delta = event.deltaY > 0 ? -0.1 : 0.1;
     const newScale = Math.max(0.5, Math.min(2, this.scale + delta));
-    
+
     this.scale = newScale;
   }
 
@@ -213,13 +225,13 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   @HostListener('mousemove', ['$event'])
   onCanvasMouseMove(event: MouseEvent) {
     if (!this.isPanning) return;
-    
+
     const dx = event.clientX - this.lastPanX;
     const dy = event.clientY - this.lastPanY;
-    
+
     this.panX += dx;
     this.panY += dy;
-    
+
     this.lastPanX = event.clientX;
     this.lastPanY = event.clientY;
   }
@@ -286,5 +298,100 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
         console.log('⏸️ Simulation stopped');
       }
     });
+  }
+  /**
+   * Select node for properties panel
+   */
+  selectNodeForProperties(id: string, type: 'queue' | 'machine') {
+    if (type === 'queue') {
+      const queue = this.queues.find(q => q.id === id);
+      if (queue) {
+        this.selectedNodeDetails = { type: 'queue', data: queue };
+      }
+    } else {
+      const machine = this.machines.find(m => m.name === id);
+      if (machine) {
+        this.selectedNodeDetails = { type: 'machine', data: machine };
+      }
+    }
+  }
+
+  clearSelection() {
+    this.selectedNodeDetails = null;
+  }
+
+  // updateQueueCapacity() {
+  //   if (this.selectedNodeDetails?.type !== 'queue') return;
+
+  //   const queue = this.selectedNodeDetails.data as QueueModel;
+
+  //   this.queueService.updateCapacity(queue.id, this.newCapacity).subscribe({
+  //     next: (updatedQueue) => {
+  //       queue.capacity = updatedQueue.capacity;
+  //       console.log('✅ Queue capacity updated:', queue.id);
+  //     },
+  //     error: (err) => {
+  //       console.error('❌ Failed to update capacity:', err);
+  //       alert('Failed to update capacity');
+  //     }
+  //   });
+  // }
+
+  updateMachineServiceTime() {
+    if (this.selectedNodeDetails?.type !== 'machine') return;
+
+    const machine = this.selectedNodeDetails.data as MachineModel;
+    const timeInMs = this.newServiceTime * 1000;
+
+    this.machineService.updateServiceTime(machine.name, timeInMs).subscribe({
+      next: (updatedMachine) => {
+        machine.serviceTime = updatedMachine.serviceTime;
+        console.log('✅ Machine service time updated:', machine.name);
+      },
+      error: (err) => {
+        console.error('❌ Failed to update service time:', err);
+        alert('Failed to update service time');
+      }
+    });
+  }
+
+  deleteSelectedNode() {
+    if (!this.selectedNodeDetails) return;
+
+    const confirmDelete = confirm(
+      `Are you sure you want to delete this ${this.selectedNodeDetails.type}?`
+    );
+
+    if (!confirmDelete) return;
+
+    if (this.selectedNodeDetails.type === 'queue') {
+      const queue = this.selectedNodeDetails.data as QueueModel;
+
+      this.queueService.deleteQueue(queue.id).subscribe({
+        next: () => {
+          this.queues = this.queues.filter(q => q.id !== queue.id);
+          this.clearSelection();
+          console.log('🗑️ Queue deleted:', queue.id);
+        },
+        error: (err) => {
+          console.error('❌ Failed to delete queue:', err);
+          alert('Failed to delete queue');
+        }
+      });
+    } else {
+      const machine = this.selectedNodeDetails.data as MachineModel;
+
+      this.machineService.deleteMachine(machine.name).subscribe({
+        next: () => {
+          this.machines = this.machines.filter(m => m.name !== machine.name);
+          this.clearSelection();
+          console.log('🗑️ Machine deleted:', machine.name);
+        },
+        error: (err) => {
+          console.error('❌ Failed to delete machine:', err);
+          alert('Failed to delete machine');
+        }
+      });
+    }
   }
 }
