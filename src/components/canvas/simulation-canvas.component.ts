@@ -268,20 +268,61 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   }
 
   // ========== REAL-TIME UPDATES ==========
+  // ========== REAL-TIME UPDATES ==========
   private subscribeToUpdates() {
+    // Queue updates
     this.queueUpdateSub = this.wsService.queueUpdates$.subscribe(update => {
       const queue = this.queues.find(q => q.id === update.queueId);
       if (queue) {
         queue.size = update.currentSize;
-        console.log(`📦 Updated ${queue.id} size: ${queue.size}`);
+        console.log(`📦 Queue Update: ${queue.id} size = ${queue.size}`);
+
+        // Update properties panel if this queue is selected
+        if (this.selectedNodeDetails?.type === 'queue' &&
+          (this.selectedNodeDetails.data as QueueModel).id === update.queueId) {
+          (this.selectedNodeDetails.data as QueueModel).size = update.currentSize;
+        }
       }
     });
 
+    // Machine updates
     this.machineUpdateSub = this.wsService.machineUpdates$.subscribe(update => {
-      const machine = this.machines.find(m => m.id === update.machineId);
+      // ✅ FIX: Search by machine.name (not machine.id)
+      const machine = this.machines.find(m => m.name === update.machineId);
+
       if (machine) {
+        // Update status
         machine.status = update.status as any;
-        console.log(`⚙️ Updated ${machine.id} status: ${machine.status}`);
+
+        // Update color and ready state based on status
+        if (update.status === 'processing') {
+          machine.color = update.productColor;
+          machine.ready = false;
+        } else if (update.status === 'FLASHING') {
+          machine.color = update.productColor;
+          machine.ready = false;
+
+          // Optional: Add visual flash effect
+          setTimeout(() => {
+            if (machine.status === 'FLASHING') {
+              machine.status = 'idle';
+            }
+          }, 200);
+        } else if (update.status === 'idle') {
+          machine.color = machine.defaultColor;
+          machine.ready = true;
+        }
+
+        console.log(`⚙️ Machine Update: ${machine.name} - Status: ${machine.status}, Color: ${machine.color}, Ready: ${machine.ready}`);
+
+        // Update properties panel if this machine is selected
+        if (this.selectedNodeDetails?.type === 'machine' &&
+          (this.selectedNodeDetails.data as MachineModel).name === update.machineId) {
+          const selectedMachine = this.selectedNodeDetails.data as MachineModel;
+          selectedMachine.status = machine.status;
+          selectedMachine.color = machine.color;
+          selectedMachine.ready = machine.ready;
+        }
       }
     });
   }

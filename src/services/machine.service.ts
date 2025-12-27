@@ -7,7 +7,7 @@ export interface MachineModel {
   id: string;             // Numeric ID
   x: number;
   y: number;
-  status: 'idle' | 'processing';
+  status: 'idle' | 'processing'| 'FLASHING' | 'error';
   serviceTime: number;    // Processing time in milliseconds
   color: string;          // Current color
   defaultColor: string;   // Default blue color
@@ -19,7 +19,7 @@ export interface MachineModel {
 
 export interface MachineStatus {
   id: string;
-  status: 'idle' | 'processing';
+  status: 'idle' | 'processing'| 'FLASHING' | 'error';
   isReady: boolean;
   color: string;
   serviceTime: number;
