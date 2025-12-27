@@ -18,25 +18,31 @@
   <div class="flex items-center gap-2">
     <!-- Add Queue Button -->
     <button (click)="addQueue()"
-            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
+            [disabled]="isRunning"
+            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
       <span class="material-symbols-outlined text-lg">layers</span>
       Add Queue
     </button>
 
     <!-- Add Machine Button -->
     <button (click)="addMachine()"
-            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
+            [disabled]="isRunning"
+            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
       <span class="material-symbols-outlined text-lg">precision_manufacturing</span>
       Add Machine
     </button>
 
     <!-- Connection Mode Toggle -->
     <button (click)="toggleConnectionMode()"
-            [class.bg-primary]="connectingMode"
-            [class.text-white]="connectingMode"
-            [class.bg-slate-100]="!connectingMode"
-            [class.hover:bg-slate-200]="!connectingMode"
-            class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+            [disabled]="isRunning"
+            [class.bg-primary]="connectingMode && !isRunning"
+            [class.text-white]="connectingMode && !isRunning"
+            [class.bg-slate-100]="!connectingMode || isRunning"
+            [class.hover:bg-slate-200]="!connectingMode && !isRunning"
+            class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
       <span class="material-symbols-outlined text-lg">cable</span>
       {{ connectingMode ? 'Connecting...' : 'Connect' }}
     </button>

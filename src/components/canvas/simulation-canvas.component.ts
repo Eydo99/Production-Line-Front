@@ -74,6 +74,10 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     this.loadMachines();
     this.loadConnections();
     this.subscribeToUpdates();
+    // ← ADD THIS:
+    this.simulationService.isRunning$.subscribe(running => {
+      this.isRunning = running;
+    });
   }
 
   ngOnDestroy() {
