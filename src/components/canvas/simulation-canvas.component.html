@@ -1,6 +1,7 @@
-<!-- TOP TOOLBAR -->
+<!-- TOP TOOLBAR with Playback Controls in the middle -->
 <div class="h-16 bg-white border-b border-slate-200 flex items-center px-4 justify-between shadow-sm">
 
+  <!-- LEFT SIDE: Logo and Title -->
   <div class="flex items-center gap-4">
     <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
       <span class="material-symbols-outlined">schema</span>
@@ -8,43 +9,36 @@
     <h1 class="text-lg font-bold">SimBuilder</h1>
   </div>
 
+  <!-- CENTER: Playback Controls -->
+  <div class="flex-1 flex items-center justify-center">
+    <app-playback-controls></app-playback-controls>
+  </div>
+
+  <!-- RIGHT SIDE: Add Queue/Machine/Connection Buttons -->
   <div class="flex items-center gap-2">
     <!-- Add Queue Button -->
     <button (click)="addQueue()"
-      class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
+            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
       <span class="material-symbols-outlined text-lg">layers</span>
       Add Queue
     </button>
 
     <!-- Add Machine Button -->
     <button (click)="addMachine()"
-      class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
+            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors">
       <span class="material-symbols-outlined text-lg">precision_manufacturing</span>
       Add Machine
     </button>
 
     <!-- Connection Mode Toggle -->
-    <button (click)="toggleConnectionMode()" [class.bg-primary]="connectingMode" [class.text-white]="connectingMode"
-      [class.bg-slate-100]="!connectingMode" [class.hover:bg-slate-200]="!connectingMode"
-      class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+    <button (click)="toggleConnectionMode()"
+            [class.bg-primary]="connectingMode"
+            [class.text-white]="connectingMode"
+            [class.bg-slate-100]="!connectingMode"
+            [class.hover:bg-slate-200]="!connectingMode"
+            class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
       <span class="material-symbols-outlined text-lg">cable</span>
       {{ connectingMode ? 'Connecting...' : 'Connect' }}
-    </button>
-
-    <!-- Run Button -->
-    <button (click)="onStartSimulation()" [disabled]="isRunning" [class.opacity-50]="isRunning"
-      class="h-9 px-4 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold flex items-center gap-2 transition-colors disabled:cursor-not-allowed">
-      <span class="material-symbols-outlined text-lg">
-        {{ isRunning ? 'pause' : 'play_arrow' }}
-      </span>
-      {{ isRunning ? 'Running...' : 'Run' }}
-    </button>
-
-    <!-- Stop Button -->
-    <button *ngIf="isRunning" (click)="onStopSimulation()"
-      class="h-9 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold flex items-center gap-2 transition-colors">
-      <span class="material-symbols-outlined text-lg">stop</span>
-      Stop
     </button>
   </div>
 
@@ -274,7 +268,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Delete Button -->
         <div class="pt-2">
           <button (click)="deleteSelectedNode()"
@@ -295,11 +289,11 @@
         </div>
 
       </div>
-      
-      
-      
+
+
+
     </div>
-    
+
 
     <!-- Panel Footer -->
     <div class="h-12 border-t border-slate-200 flex items-center justify-center px-4 bg-slate-50">

@@ -5,11 +5,13 @@ import { Subscription } from 'rxjs';
 import { QueueService, QueueModel } from '../../services/queue.service';
 import { MachineService, MachineModel } from '../../services/machine.service';
 import { ConnectionService, ConnectionModel } from '../../services/connection.service';
+import { SimulationService } from '../../services/SimulationService';
 import { WebSocketService } from '../../services/websocket.service';
 import { QueueNodeComponent } from './queue-node/queue-node.component';
 import { MachineNodeComponent } from './machine-node/machine-node.component';
 import { ConnectionLineComponent } from './connection-line/connection-line.component';
 import { ZoomControlsComponent } from '../zoom-controls/zoom-controls.component';
+import { PlaybackControlsComponent } from '../playback-controls/playback-controls.component';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -21,6 +23,7 @@ import { FormsModule } from '@angular/forms';
     MachineNodeComponent,
     ConnectionLineComponent,
     ZoomControlsComponent,
+    PlaybackControlsComponent,
     FormsModule
   ],
   templateUrl: './simulation-canvas.component.html',
@@ -62,7 +65,8 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     private machineService: MachineService,
     private connectionService: ConnectionService,
     private wsService: WebSocketService,
-    private http: HttpClient  // ← ADD THIS LINE!
+    private http: HttpClient,
+    private simulationService: SimulationService// ← ADD THIS LINE!
   ) { }
 
   ngOnInit() {
@@ -278,27 +282,6 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ========== SIMULATION CONTROL ==========
-  onStartSimulation() {
-    this.http.post('http://localhost:8080/api/simulation/start', {}).subscribe({
-      next: () => {
-        this.isRunning = true;
-        console.log('✅ Simulation started');
-      },
-      error: (err) => {
-        alert('Error: ' + (err.error?.error || 'Failed to start'));
-      }
-    });
-  }
-
-  onStopSimulation() {
-    this.http.post('http://localhost:8080/api/simulation/stop', {}).subscribe({
-      next: () => {
-        this.isRunning = false;
-        console.log('⏸️ Simulation stopped');
-      }
-    });
-  }
   /**
    * Select node for properties panel
    */
