@@ -145,6 +145,26 @@ export class SimulationService {
   }
 
   /**
+   * Replay simulation from last snapshot
+   */
+  replaySimulation(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/replay`, {}).pipe(
+      tap(response => {
+        console.log('🔄 Simulation replaying:', response);
+        this.isRunningSubject.next(true);
+        this.isPausedSubject.next(false);
+      })
+    );
+  }
+
+  /**
+   * Check if a snapshot exists
+   */
+  checkSnapshot(): Observable<boolean> {
+    return this.http.get<boolean>(`${this.apiUrl}/snapshot`);
+  }
+
+  /**
    * Get simulation statistics
    */
   getStatistics(): Observable<SimulationStatistics> {

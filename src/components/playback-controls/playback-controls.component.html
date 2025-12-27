@@ -1,55 +1,46 @@
 <div class="flex items-center gap-2">
 
+  <!-- REPLAY Button -->
+  <button [disabled]="isRunning || !hasSnapshot" (click)="onReplay()" class="h-10 w-10 rounded-lg bg-indigo-500 hover:bg-indigo-600
+               text-white flex items-center justify-center transition-all
+               disabled:opacity-50 disabled:cursor-not-allowed
+               shadow-md hover:shadow-lg" title="Replay Previous Simulation">
+    <span class="material-symbols-outlined text-xl">replay</span>
+  </button>
+
   <!-- START/RESUME Button -->
-  <button
-    *ngIf="!isRunning || isPaused"
-    (click)="onStart()"
-    [disabled]="isRunning && !isPaused"
-    class="h-10 w-10 rounded-lg bg-green-500 hover:bg-green-600
+  <button *ngIf="!isRunning || isPaused" (click)="onStart()" [disabled]="isRunning && !isPaused" class="h-10 w-10 rounded-lg bg-green-500 hover:bg-green-600
                text-white flex items-center justify-center transition-all
                disabled:opacity-50 disabled:cursor-not-allowed shadow-md
-               hover:shadow-lg"
-    [title]="isPaused ? 'Resume' : 'Start Simulation'">
-        <span class="material-symbols-outlined text-xl">
-          {{ isPaused ? 'play_arrow' : 'play_arrow' }}
-        </span>
+               hover:shadow-lg" [title]="isPaused ? 'Resume' : 'Start Simulation'">
+    <span class="material-symbols-outlined text-xl">
+      {{ isPaused ? 'play_arrow' : 'play_arrow' }}
+    </span>
   </button>
 
   <!-- PAUSE Button -->
-  <button
-    *ngIf="isRunning && !isPaused"
-    (click)="onPause()"
-    class="h-10 w-10 rounded-lg bg-yellow-500 hover:bg-yellow-600
+  <button *ngIf="isRunning && !isPaused" (click)="onPause()" class="h-10 w-10 rounded-lg bg-yellow-500 hover:bg-yellow-600
                text-white flex items-center justify-center transition-all
-               shadow-md hover:shadow-lg"
-    title="Pause Simulation">
+               shadow-md hover:shadow-lg" title="Pause Simulation">
     <span class="material-symbols-outlined text-xl">pause</span>
   </button>
 
   <!-- STOP Button -->
-  <button
-    (click)="onStop()"
-    [disabled]="!isRunning"
-    class="h-10 w-10 rounded-lg bg-red-500 hover:bg-red-600
+  <button (click)="onStop()" [disabled]="!isRunning" class="h-10 w-10 rounded-lg bg-red-500 hover:bg-red-600
                text-white flex items-center justify-center transition-all
                disabled:opacity-50 disabled:cursor-not-allowed shadow-md
-               hover:shadow-lg"
-    title="Stop Simulation">
+               hover:shadow-lg" title="Stop Simulation">
     <span class="material-symbols-outlined text-xl">stop</span>
   </button>
 
   <!-- Status Indicator -->
   <div class="ml-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
-    <div
-      class="w-2 h-2 rounded-full"
-      [class.bg-green-500]="isRunning && !isPaused"
-      [class.bg-yellow-500]="isPaused"
-      [class.bg-slate-400]="!isRunning"
-      [class.animate-pulse]="isRunning && !isPaused">
+    <div class="w-2 h-2 rounded-full" [class.bg-green-500]="isRunning && !isPaused" [class.bg-yellow-500]="isPaused"
+      [class.bg-slate-400]="!isRunning" [class.animate-pulse]="isRunning && !isPaused">
     </div>
     <span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-          {{ getStatusText() }}
-        </span>
+      {{ getStatusText() }}
+    </span>
   </div>
 
   <!-- Statistics Display -->
@@ -84,13 +75,9 @@
   </div>
 
   <!-- Clear Button -->
-  <button
-    (click)="onClear()"
-    [disabled]="isRunning"
-    class="h-10 px-3 rounded-lg bg-slate-200 hover:bg-slate-300
+  <button (click)="onClear()" [disabled]="isRunning" class="h-10 px-3 rounded-lg bg-slate-200 hover:bg-slate-300
                text-slate-700 flex items-center gap-2 transition-all
-               disabled:opacity-50 disabled:cursor-not-allowed"
-    title="Clear Simulation">
+               disabled:opacity-50 disabled:cursor-not-allowed" title="Clear Simulation">
     <span class="material-symbols-outlined text-lg">delete_sweep</span>
     <span class="text-xs font-medium">Clear</span>
   </button>
