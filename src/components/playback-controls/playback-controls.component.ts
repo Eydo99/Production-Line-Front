@@ -7,13 +7,14 @@ import { Subscription } from 'rxjs';
   selector: 'app-playback-controls',
   standalone: true,
   imports: [CommonModule],
-  templateUrl:'playback-controls.component.html',
-  styleUrl:'playback-controls.component.css'
+  templateUrl: 'playback-controls.component.html',
+  styleUrl: 'playback-controls.component.css'
 })
 export class PlaybackControlsComponent implements OnInit, OnDestroy {
 
   isRunning = false;
   isPaused = false;
+  hasSnapshot = false; // ← ADD THIS
   statistics = {
     totalGenerated: 0,
     totalProcessed: 0,
@@ -23,7 +24,7 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
 
   private subscriptions: Subscription[] = [];
 
-  constructor(private simulationService: SimulationService) {}
+  constructor(private simulationService: SimulationService) { }
 
   ngOnInit() {
     // Subscribe to simulation state
@@ -47,16 +48,40 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Poll statistics every 1 second when running
+    // Poll statistics and snapshot availability every 1 second
     setInterval(() => {
+      // Check for snapshot availability
+      this.checkSnapshotStatus();
+
       if (this.isRunning) {
         this.simulationService.getStatistics().subscribe();
       }
-    }, 1000);
+    }, 1000); // 1-second interval
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  /**
+   * Replay simulation from previous run
+   */
+  onReplay() {
+    if (this.isRunning) {
+      alert('Cannot replay while simulation is running. Stop it first.');
+      return;
+    }
+
+    this.simulationService.replaySimulation().subscribe({
+      next: (res) => {
+        console.log('🔄 Replay started:', res);
+        // alert(res.message); // Optional: show message
+      },
+      error: (err) => {
+        alert('Failed to replay: ' + (err.error?.error || 'Unknown error'));
+        console.error('❌ Replay error:', err);
+      }
+    });
   }
 
   /**
@@ -114,11 +139,21 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     this.simulationService.stopSimulation().subscribe({
       next: () => {
         console.log('⏹️  Simulation stopped');
+        this.checkSnapshotStatus(); // Check immediately
       },
       error: (err) => {
         alert('Failed to stop simulation: ' + (err.error?.error || 'Unknown error'));
         console.error('❌ Stop error:', err);
       }
+    });
+  }
+
+  /**
+   * Check if a snapshot exists for replay
+   */
+  private checkSnapshotStatus() {
+    this.simulationService.checkSnapshot().subscribe(exists => {
+      this.hasSnapshot = exists;
     });
   }
 
