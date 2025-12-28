@@ -13,47 +13,37 @@
   <!-- CENTER: Playback Controls -->
   <div class="flex-1 flex items-center justify-center gap-4">
     <app-playback-controls></app-playback-controls>
-    
+
     <!-- Connection Status -->
     <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full shadow-sm">
-        <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
-             [class.bg-green-500]="isConnected"
-             [class.bg-red-500]="!isConnected"
-             [class.animate-pulse]="isConnected"></div>
-        <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-            {{ isConnected ? 'Live' : 'Offline' }}
-        </span>
+      <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300" [class.bg-green-500]="isConnected"
+        [class.bg-red-500]="!isConnected" [class.animate-pulse]="isConnected"></div>
+      <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+        {{ isConnected ? 'Live' : 'Offline' }}
+      </span>
     </div>
   </div>
 
   <!-- RIGHT SIDE: Add Queue/Machine/Connection Buttons -->
   <div class="flex items-center gap-2">
     <!-- Add Queue Button -->
-    <button (click)="addQueue()"
-            [disabled]="isRunning"
-            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
+    <button (click)="addQueue()" [disabled]="isRunning" class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
       <span class="material-symbols-outlined text-lg">layers</span>
       Add Queue
     </button>
 
     <!-- Add Machine Button -->
-    <button (click)="addMachine()"
-            [disabled]="isRunning"
-            class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
+    <button (click)="addMachine()" [disabled]="isRunning" class="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium flex items-center gap-2 transition-colors
                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
       <span class="material-symbols-outlined text-lg">precision_manufacturing</span>
       Add Machine
     </button>
 
     <!-- Connection Mode Toggle -->
-    <button (click)="toggleConnectionMode()"
-            [disabled]="isRunning"
-            [class.bg-primary]="connectingMode && !isRunning"
-            [class.text-white]="connectingMode && !isRunning"
-            [class.bg-slate-100]="!connectingMode || isRunning"
-            [class.hover:bg-slate-200]="!connectingMode && !isRunning"
-            class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors
+    <button (click)="toggleConnectionMode()" [disabled]="isRunning" [class.bg-primary]="connectingMode && !isRunning"
+      [class.text-white]="connectingMode && !isRunning" [class.bg-slate-100]="!connectingMode || isRunning"
+      [class.hover:bg-slate-200]="!connectingMode && !isRunning" class="h-9 px-3 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors
                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100">
       <span class="material-symbols-outlined text-lg">cable</span>
       {{ connectingMode ? 'Connecting...' : 'Connect' }}
@@ -202,8 +192,8 @@
         </div>
         <!-- Delete Button -->
         <div class="pt-2">
-          <button (click)="deleteSelectedNode()"
-            class="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-red-200">
+          <button (click)="deleteSelectedNode()" [disabled]="isRunning"
+            class="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50">
             <span class="material-symbols-outlined text-lg">delete</span>
             Delete Queue
           </button>
@@ -289,8 +279,8 @@
 
         <!-- Delete Button -->
         <div class="pt-2">
-          <button (click)="deleteSelectedNode()"
-            class="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-red-200">
+          <button (click)="deleteSelectedNode()" [disabled]="isRunning"
+            class="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50">
             <span class="material-symbols-outlined text-lg">delete</span>
             Delete Machine
           </button>
