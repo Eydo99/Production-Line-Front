@@ -405,6 +405,9 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
       this.queueService.deleteQueue(queue.id).subscribe({
         next: () => {
           this.queues = this.queues.filter(q => q.id !== queue.id);
+          // Remove connections associated with this queue
+          this.connections = this.connections.filter(c => c.fromId !== queue.id && c.toId !== queue.id);
+          
           this.clearSelection();
           console.log('🗑️ Queue deleted:', queue.id);
         },
@@ -419,6 +422,9 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
       this.machineService.deleteMachine(machine.name).subscribe({
         next: () => {
           this.machines = this.machines.filter(m => m.name !== machine.name);
+          // Remove connections associated with this machine
+          this.connections = this.connections.filter(c => c.fromId !== machine.name && c.toId !== machine.name);
+          
           this.clearSelection();
           console.log('🗑️ Machine deleted:', machine.name);
         },
