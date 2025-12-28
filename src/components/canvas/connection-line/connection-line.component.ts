@@ -8,7 +8,7 @@ import { ConnectionModel } from '../../../services/connection.service';
   imports: [CommonModule],
   template: `
     <svg 
-      class="absolute inset-0 w-full h-full pointer-events-none" 
+      class="absolute inset-0 w-full h-full pointer-events-none overflow-visible" 
       style="z-index: 1;">
       <defs>
         <marker
@@ -68,7 +68,7 @@ export class ConnectionLineComponent {
 
     // Curved path for better visuals
     const midX = (startX + endX) / 2;
-    
+
     return `M ${startX} ${startY} 
             Q ${midX} ${startY}, ${midX} ${(startY + endY) / 2}
             T ${endX} ${endY}`;

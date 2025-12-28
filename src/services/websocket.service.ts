@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Injectable, NgZone } from '@angular/core';
+import { Subject, BehaviorSubject } from 'rxjs';
 import Stomp from 'stompjs';
 import SockJS from 'sockjs-client';
 
@@ -24,31 +24,42 @@ export class WebSocketService {
   // Observables for components to subscribe
   public queueUpdates$ = new Subject<QueueUpdate>();
   public machineUpdates$ = new Subject<MachineUpdate>();
+  public connectionStatus$ = new BehaviorSubject<boolean>(false);
 
-  constructor() { }
+  constructor(private ngZone: NgZone) { }
 
   public connect(): void {
     const socket = new SockJS(this.webSocketUrl);
     this.stompClient = Stomp.over(socket);
 
+    // Disable debug logs to reduce noise
+    this.stompClient.debug = () => { };
+
     this.stompClient.connect({}, (frame: any) => {
-      console.log('✅ WebSocket Connected:', frame);
-      
+      console.log('✅ Connected to WebSocket');
+      this.ngZone.run(() => this.connectionStatus$.next(true));
+
       // Subscribe to queue updates
       this.stompClient.subscribe('/topic/queues', (message: any) => {
         const update = JSON.parse(message.body);
-        console.log('📦 Queue Update:', update);
-        this.queueUpdates$.next(update);
+        console.log('📦 Queue Update (WS):', update);
+        this.ngZone.run(() => {
+          this.queueUpdates$.next(update);
+        });
       });
-      
+
       // Subscribe to machine updates
       this.stompClient.subscribe('/topic/machines', (message: any) => {
         const update = JSON.parse(message.body);
-        console.log('⚙️ Machine Update:', update);
-        this.machineUpdates$.next(update);
+        console.log('⚙️ Machine Update (WS):', update);
+        this.ngZone.run(() => {
+          this.machineUpdates$.next(update);
+        });
       });
     }, (error: any) => {
       console.error('❌ WebSocket Error:', error);
+      this.ngZone.run(() => this.connectionStatus$.next(false));
+      setTimeout(() => this.connect(), 5000); // Auto-reconnect
     });
   }
 
@@ -71,10 +82,10 @@ export class WebSocketService {
     }
   }
 
-public sendPing(): void {
-  if (this.stompClient?.connected) {
-    this.stompClient.send('/app/ping', {}, JSON.stringify({ type: 'ping' }));
+  public sendPing(): void {
+    if (this.stompClient?.connected) {
+      this.stompClient.send('/app/ping', {}, JSON.stringify({ type: 'ping' }));
+    }
   }
-}
 
 }

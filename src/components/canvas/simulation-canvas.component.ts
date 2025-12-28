@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';  // ← IMPORT THIS
-import { Subscription } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef } from '@angular/core';
+import { Subscription, forkJoin } from 'rxjs';
 import { QueueService, QueueModel } from '../../services/queue.service';
 import { MachineService, MachineModel } from '../../services/machine.service';
 import { ConnectionService, ConnectionModel } from '../../services/connection.service';
@@ -34,7 +35,8 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   queues: QueueModel[] = [];
   machines: MachineModel[] = [];
   connections: ConnectionModel[] = [];
-  isRunning = false;  // ← YOU ALREADY HAVE THIS
+  isRunning = false;
+  isConnected = false;
 
   // Connection creation state
   connectingMode = false;
@@ -59,24 +61,28 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   private queueUpdateSub?: Subscription;
   private machineUpdateSub?: Subscription;
 
-  // ← FIX YOUR CONSTRUCTOR HERE
+
   constructor(
     private queueService: QueueService,
     private machineService: MachineService,
     private connectionService: ConnectionService,
     private wsService: WebSocketService,
     private http: HttpClient,
-    private simulationService: SimulationService// ← ADD THIS LINE!
+    private simulationService: SimulationService,
+    private cd: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
-    this.loadQueues();
-    this.loadMachines();
-    this.loadConnections();
+    this.loadData();
     this.subscribeToUpdates();
-    // ← ADD THIS:
+
     this.simulationService.isRunning$.subscribe(running => {
       this.isRunning = running;
+    });
+
+    this.wsService.connectionStatus$.subscribe(status => {
+      this.isConnected = status;
+      this.cd.detectChanges();
     });
   }
 
@@ -86,19 +92,18 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   }
 
   // ========== LOAD DATA ==========
-  loadQueues() {
-    this.queueService.getQueues().subscribe(q => {
-      console.log('📋 Loaded queues:', q);
-      this.queues = q;
-      this.updateConnectionPositions();
-    });
-  }
+  // ========== LOAD DATA ==========
+  loadData() {
+    forkJoin({
+      queues: this.queueService.getQueues(),
+      machines: this.machineService.getMachines()
+    }).subscribe(({ queues, machines }) => {
+      this.queues = queues;
+      this.machines = machines;
+      console.log('📦 nodes loaded');
 
-  loadMachines() {
-    this.machineService.getMachines().subscribe(m => {
-      console.log('⚙️ Loaded machines:', m);
-      this.machines = m;
-      this.updateConnectionPositions();
+      // Load connections ONLY after nodes are ready to ensure coordinates are calculated
+      this.loadConnections();
     });
   }
 
@@ -168,9 +173,17 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
       if (this.connectionService.validateConnection(fromId, toId)) {
         this.connectionService.createConnection(fromId, toId).subscribe(
           conn => {
-            console.log('✅ Connection created:', conn);
-            this.connections.push(conn);
+            // Ensure we have the IDs even if backend response is partial
+            const fullConn: ConnectionModel = {
+              ...conn,
+              fromId,
+              toId
+            };
+
+            console.log('✅ Connection created:', fullConn);
+            this.connections = [...this.connections, fullConn]; // Immutable update
             this.updateConnectionPositions();
+            this.cd.detectChanges(); // Force update
             this.selectedNode = null;
             this.connectingMode = false;
           },
@@ -204,7 +217,8 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
     const queue = this.queues.find(q => q.id === id);
     if (queue) return queue;
 
-    const machine = this.machines.find(m => m.id === id);
+    // Fix: Machines might be referenced by name (e.g., "M1") or numeric ID
+    const machine = this.machines.find(m => m.id === id || m.name === id);
     if (machine) return machine;
 
     return null;
@@ -270,18 +284,34 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   // ========== REAL-TIME UPDATES ==========
   private subscribeToUpdates() {
     this.queueUpdateSub = this.wsService.queueUpdates$.subscribe(update => {
-      const queue = this.queues.find(q => q.id === update.queueId);
+      // Robust lookup: Handle string vs number mismatch
+      const queue = this.queues.find(q => String(q.id) === String(update.queueId));
       if (queue) {
         queue.size = update.currentSize;
         console.log(`📦 Updated ${queue.id} size: ${queue.size}`);
+        this.cd.detectChanges(); // Force update
       }
     });
 
     this.machineUpdateSub = this.wsService.machineUpdates$.subscribe(update => {
-      const machine = this.machines.find(m => m.id === update.machineId);
+      // Robust lookup: Match ID or Name, handling type differences
+      const targetId = String(update.machineId);
+      const machine = this.machines.find(m =>
+        String(m.id) === targetId || String(m.name) === targetId
+      );
+
       if (machine) {
         machine.status = update.status as any;
-        console.log(`⚙️ Updated ${machine.id} status: ${machine.status}`);
+
+        // Update color based on product
+        if (update.productColor) {
+          machine.color = update.productColor;
+        } else {
+          machine.color = machine.defaultColor || '#3b82f6'; // Fallback to default
+        }
+
+        console.log(`⚙️ Updated ${machine.name} status: ${machine.status}, color: ${machine.color}`);
+        this.cd.detectChanges(); // Force update
       }
     });
   }

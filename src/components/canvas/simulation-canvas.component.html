@@ -9,9 +9,21 @@
     <h1 class="text-lg font-bold">SimBuilder</h1>
   </div>
 
+
   <!-- CENTER: Playback Controls -->
-  <div class="flex-1 flex items-center justify-center">
+  <div class="flex-1 flex items-center justify-center gap-4">
     <app-playback-controls></app-playback-controls>
+    
+    <!-- Connection Status -->
+    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full shadow-sm">
+        <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
+             [class.bg-green-500]="isConnected"
+             [class.bg-red-500]="!isConnected"
+             [class.animate-pulse]="isConnected"></div>
+        <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            {{ isConnected ? 'Live' : 'Offline' }}
+        </span>
+    </div>
   </div>
 
   <!-- RIGHT SIDE: Add Queue/Machine/Connection Buttons -->
