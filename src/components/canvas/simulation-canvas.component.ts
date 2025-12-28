@@ -282,18 +282,25 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
   }
 
   // ========== REAL-TIME UPDATES ==========
+  // Add this to simulation-canvas.component.ts
+// Replace the subscribeToUpdates() method
+
   private subscribeToUpdates() {
+    // Queue updates subscription
     this.queueUpdateSub = this.wsService.queueUpdates$.subscribe(update => {
       // Robust lookup: Handle string vs number mismatch
       const queue = this.queues.find(q => String(q.id) === String(update.queueId));
       if (queue) {
         queue.size = update.currentSize;
         console.log(`📦 Updated ${queue.id} size: ${queue.size}`);
-        this.cd.detectChanges(); // Force update
+        this.cd.detectChanges(); // Force Angular to check for changes
       }
     });
 
+    // Machine updates subscription - THIS IS THE KEY PART
     this.machineUpdateSub = this.wsService.machineUpdates$.subscribe(update => {
+      console.log('⚙️ Received machine update:', update);
+
       // Robust lookup: Match ID or Name, handling type differences
       const targetId = String(update.machineId);
       const machine = this.machines.find(m =>
@@ -301,21 +308,32 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
       );
 
       if (machine) {
+        // Update status
         machine.status = update.status as any;
 
-        // Update color based on product
+        // Update color based on product or reset to default
         if (update.productColor) {
           machine.color = update.productColor;
         } else {
-          machine.color = machine.defaultColor || '#3b82f6'; // Fallback to default
+          machine.color = machine.defaultColor || '#3b82f6';
         }
 
-        console.log(`⚙️ Updated ${machine.name} status: ${machine.status}, color: ${machine.color}`);
-        this.cd.detectChanges(); // Force update
+        // Update ready state based on status
+        machine.ready = (update.status === 'idle');
+
+        console.log(`⚙️ Updated ${machine.name}:`, {
+          status: machine.status,
+          color: machine.color,
+          ready: machine.ready
+        });
+
+        // 🔑 KEY: Force change detection to update the view immediately
+        this.cd.detectChanges();
+      } else {
+        console.warn(`⚠️ Machine not found for update: ${targetId}`);
       }
     });
   }
-
   /**
    * Select node for properties panel
    */
