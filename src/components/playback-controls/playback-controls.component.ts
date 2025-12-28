@@ -14,7 +14,8 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
 
   isRunning = false;
   isPaused = false;
-  hasSnapshot = false; // ← ADD THIS
+  isReplaying = false;
+  hasSnapshot = false;
   statistics = {
     totalGenerated: 0,
     totalProcessed: 0,
@@ -23,6 +24,7 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
   };
 
   private subscriptions: Subscription[] = [];
+  private statusCheckInterval: any;
 
   constructor(private simulationService: SimulationService) { }
 
@@ -43,24 +45,39 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     );
 
     this.subscriptions.push(
+      this.simulationService.isReplaying$.subscribe(replaying => {
+        this.isReplaying = replaying;
+        console.log('🎮 Playback controls - isReplaying:', replaying);
+      })
+    );
+
+    this.subscriptions.push(
       this.simulationService.statistics$.subscribe(stats => {
         this.statistics = stats;
       })
     );
 
-    // Poll statistics and snapshot availability every 1 second
-    setInterval(() => {
+    // Check snapshot status immediately
+    this.checkSnapshotStatus();
+
+    // Poll statistics and snapshot availability every 2 seconds
+    this.statusCheckInterval = setInterval(() => {
       // Check for snapshot availability
       this.checkSnapshotStatus();
 
+      // Update statistics if running
       if (this.isRunning) {
         this.simulationService.getStatistics().subscribe();
       }
-    }, 1000); // 1-second interval
+    }, 2000); // 2-second interval
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
+
+    if (this.statusCheckInterval) {
+      clearInterval(this.statusCheckInterval);
+    }
   }
 
   /**
@@ -72,13 +89,25 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.hasSnapshot) {
+      alert('No snapshot available. Run a simulation first.');
+      return;
+    }
+
+    console.log('🔁 Starting replay...');
+
     this.simulationService.replaySimulation().subscribe({
       next: (res) => {
-        console.log('🔄 Replay started:', res);
-        // alert(res.message); // Optional: show message
+        console.log('✅ Replay started:', res);
+        // Show success message with details
+        const message = `Replay started!\n` +
+          `Duration: ${res.durationSeconds || 0}s\n` +
+          `Products: ${res.productsToReplay || 0}`;
+        console.log(message);
       },
       error: (err) => {
-        alert('Failed to replay: ' + (err.error?.error || 'Unknown error'));
+        const errorMsg = err.error?.error || err.error?.message || 'Unknown error';
+        alert('Failed to replay: ' + errorMsg);
         console.error('❌ Replay error:', err);
       }
     });
@@ -139,7 +168,10 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     this.simulationService.stopSimulation().subscribe({
       next: () => {
         console.log('⏹️  Simulation stopped');
-        this.checkSnapshotStatus(); // Check immediately
+        // Check snapshot status immediately after stopping
+        setTimeout(() => {
+          this.checkSnapshotStatus();
+        }, 500);
       },
       error: (err) => {
         alert('Failed to stop simulation: ' + (err.error?.error || 'Unknown error'));
@@ -152,8 +184,15 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
    * Check if a snapshot exists for replay
    */
   private checkSnapshotStatus() {
-    this.simulationService.checkSnapshot().subscribe(exists => {
-      this.hasSnapshot = exists;
+    this.simulationService.checkSnapshot().subscribe({
+      next: (hasSnapshot) => {
+        this.hasSnapshot = hasSnapshot;
+        console.log('📸 Snapshot available:', hasSnapshot);
+      },
+      error: (err) => {
+        console.error('❌ Error checking snapshot:', err);
+        this.hasSnapshot = false;
+      }
     });
   }
 
@@ -181,6 +220,7 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
    * Get status text for display
    */
   getStatusText(): string {
+    if (this.isReplaying) return 'Replaying';
     if (this.isPaused) return 'Paused';
     if (this.isRunning) return 'Running';
     return 'Stopped';

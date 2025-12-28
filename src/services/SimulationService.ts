@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, interval, of } from 'rxjs';
+import { tap, switchMap, takeWhile, map } from 'rxjs/operators';
 
 export interface SimulationStatus {
   isRunning: boolean;
@@ -24,6 +24,14 @@ export interface SimulationStatistics {
   isPaused: boolean;
 }
 
+export interface ReplayStatus {
+  isReplayMode: boolean;
+  totalProducts: number;
+  replayIndex: number;
+  productsReplayed: number;
+  productsRemaining: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -34,6 +42,7 @@ export class SimulationService {
   // State management with BehaviorSubjects
   private isRunningSubject = new BehaviorSubject<boolean>(false);
   private isPausedSubject = new BehaviorSubject<boolean>(false);
+  private isReplayingSubject = new BehaviorSubject<boolean>(false);
   private statisticsSubject = new BehaviorSubject<SimulationStatistics>({
     totalGenerated: 0,
     totalProcessed: 0,
@@ -46,6 +55,7 @@ export class SimulationService {
   // Public observables
   public isRunning$ = this.isRunningSubject.asObservable();
   public isPaused$ = this.isPausedSubject.asObservable();
+  public isReplaying$ = this.isReplayingSubject.asObservable();
   public statistics$ = this.statisticsSubject.asObservable();
 
   constructor(private http: HttpClient) {
@@ -62,6 +72,7 @@ export class SimulationService {
         console.log('▶️  Simulation started:', response);
         this.isRunningSubject.next(true);
         this.isPausedSubject.next(false);
+        this.isReplayingSubject.next(false);
       })
     );
   }
@@ -75,6 +86,7 @@ export class SimulationService {
         console.log('⏹️  Simulation stopped:', response);
         this.isRunningSubject.next(false);
         this.isPausedSubject.next(false);
+        this.isReplayingSubject.next(false);
       })
     );
   }
@@ -112,6 +124,7 @@ export class SimulationService {
         console.log('🧹 Simulation cleared:', response);
         this.isRunningSubject.next(false);
         this.isPausedSubject.next(false);
+        this.isReplayingSubject.next(false);
         this.statisticsSubject.next({
           totalGenerated: 0,
           totalProcessed: 0,
@@ -150,18 +163,78 @@ export class SimulationService {
   replaySimulation(): Observable<any> {
     return this.http.post(`${this.apiUrl}/replay`, {}).pipe(
       tap(response => {
-        console.log('🔄 Simulation replaying:', response);
+        console.log('🔁 Simulation replaying:', response);
         this.isRunningSubject.next(true);
         this.isPausedSubject.next(false);
+        this.isReplayingSubject.next(true);
+
+        // Poll replay status every second
+        this.startReplayStatusPolling();
       })
     );
+  }
+
+  /**
+   * Poll replay status during replay
+   */
+  private startReplayStatusPolling(): void {
+    interval(1000).pipe(
+      switchMap(() => this.getReplayStatus()),
+      takeWhile(status => {
+        // Stop polling if we manually stop or if backend reports it's not running
+        if (!status.isRunning) {
+          // Sync frontend state immediately
+          this.isRunningSubject.next(false);
+          this.isReplayingSubject.next(false);
+          return false;
+        }
+        return this.isReplayingSubject.value; // Continue while frontend thinks we are replaying
+      }, true)
+    ).subscribe({
+      next: (status) => {
+        console.log('🔁 Replay status:', status);
+      },
+      complete: () => {
+        console.log('✅ Replay completed or stopped');
+        this.isReplayingSubject.next(false);
+        this.isRunningSubject.next(false);
+      },
+      error: (err) => console.error('❌ Replay polling error:', err)
+    });
+  }
+
+  /**
+   * Get replay status
+   */
+  getReplayStatus(): Observable<ReplayStatus> {
+    return this.http.get<ReplayStatus>(`${this.apiUrl}/replay/status`);
   }
 
   /**
    * Check if a snapshot exists
    */
   checkSnapshot(): Observable<boolean> {
-    return this.http.get<boolean>(`${this.apiUrl}/snapshot`);
+    return this.http.get<any>(`${this.apiUrl}/snapshot`).pipe(
+      tap(response => {
+        console.log('📸 Snapshot check response:', response);
+      }),
+      map(response => {
+        // Extract hasSnapshot boolean from response
+        const hasSnapshot = response?.hasSnapshot === true;
+        return hasSnapshot;
+      })
+    );
+  }
+
+  /**
+   * Create a snapshot
+   */
+  createSnapshot(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/snapshot`, {}).pipe(
+      tap(response => {
+        console.log('📸 Snapshot created:', response);
+      })
+    );
   }
 
   /**
@@ -201,6 +274,13 @@ export class SimulationService {
    */
   isPaused(): boolean {
     return this.isPausedSubject.value;
+  }
+
+  /**
+   * Get current replaying state (synchronous)
+   */
+  isReplaying(): boolean {
+    return this.isReplayingSubject.value;
   }
 
   /**
