@@ -30,6 +30,7 @@ export interface ReplayStatus {
   replayIndex: number;
   productsReplayed: number;
   productsRemaining: number;
+  isRunning: boolean;
 }
 
 @Injectable({
