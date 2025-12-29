@@ -1,6 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SimulationService } from '../../services/SimulationService';
+import { ValidationService, ValidationResult } from '../../services/validation.service';
+import { QueueModel } from '../../services/queue.service';
+import { MachineModel } from '../../services/machine.service';
+import { ConnectionModel } from '../../services/connection.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -11,6 +15,11 @@ import { Subscription } from 'rxjs';
   styleUrl: 'playback-controls.component.css'
 })
 export class PlaybackControlsComponent implements OnInit, OnDestroy {
+
+  // Inputs for validation
+  @Input() queues: QueueModel[] = [];
+  @Input() machines: MachineModel[] = [];
+  @Input() connections: ConnectionModel[] = [];
 
   isRunning = false;
   isPaused = false;
@@ -23,10 +32,17 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     avgQueueLength: 0
   };
 
+  // Validation state
+  showValidationPopup = false;
+  validationResult: ValidationResult | null = null;
+
   private subscriptions: Subscription[] = [];
   private statusCheckInterval: any;
 
-  constructor(private simulationService: SimulationService) { }
+  constructor(
+    private simulationService: SimulationService,
+    private validationService: ValidationService
+  ) { }
 
   ngOnInit() {
     // Subscribe to simulation state
@@ -62,19 +78,15 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
 
     // Poll statistics and snapshot availability every 2 seconds
     this.statusCheckInterval = setInterval(() => {
-      // Check for snapshot availability
       this.checkSnapshotStatus();
-
-      // Update statistics if running
       if (this.isRunning) {
         this.simulationService.getStatistics().subscribe();
       }
-    }, 2000); // 2-second interval
+    }, 2000);
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
-
     if (this.statusCheckInterval) {
       clearInterval(this.statusCheckInterval);
     }
@@ -99,7 +111,6 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     this.simulationService.replaySimulation().subscribe({
       next: (res) => {
         console.log('✅ Replay started:', res);
-        // Show success message with details
         const message = `Replay started!\n` +
           `Duration: ${res.durationSeconds || 0}s\n` +
           `Products: ${res.productsToReplay || 0}`;
@@ -114,11 +125,11 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Start or resume simulation
+   * Start or resume simulation WITH VALIDATION
    */
   onStart() {
     if (this.isPaused) {
-      // Resume
+      // Resume (no validation needed)
       this.simulationService.resumeSimulation().subscribe({
         next: () => {
           console.log('▶️  Simulation resumed');
@@ -129,17 +140,69 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
         }
       });
     } else {
-      // Start
-      this.simulationService.startSimulation().subscribe({
-        next: () => {
-          console.log('▶️  Simulation started');
-        },
-        error: (err) => {
-          alert('Failed to start simulation: ' + (err.error?.error || 'Unknown error'));
-          console.error('❌ Start error:', err);
-        }
-      });
+      // Start - VALIDATE FIRST
+      this.validateAndStart();
     }
+  }
+
+  /**
+   * Validate configuration before starting
+   */
+  private validateAndStart() {
+    console.log('🔍 Validating simulation configuration...');
+    
+    // Perform validation
+    this.validationResult = this.validationService.validateSimulation(
+      this.queues,
+      this.machines,
+      this.connections
+    );
+
+    console.log('Validation result:', this.validationResult);
+
+    if (!this.validationResult.isValid) {
+      // Show validation errors
+      this.showValidationPopup = true;
+      return;
+    }
+
+    // If there are warnings, show them but allow to proceed
+    if (this.validationResult.warnings.length > 0) {
+      const proceed = confirm(
+        'Configuration has warnings:\n\n' +
+        this.validationResult.warnings.join('\n') +
+        '\n\nDo you want to proceed anyway?'
+      );
+      
+      if (!proceed) {
+        return;
+      }
+    }
+
+    // Validation passed, start simulation
+    this.startSimulation();
+  }
+
+  /**
+   * Actually start the simulation
+   */
+  private startSimulation() {
+    this.simulationService.startSimulation().subscribe({
+      next: () => {
+        console.log('▶️  Simulation started');
+      },
+      error: (err) => {
+        alert('Failed to start simulation: ' + (err.error?.error || 'Unknown error'));
+        console.error('❌ Start error:', err);
+      }
+    });
+  }
+
+  /**
+   * Close validation popup
+   */
+  closeValidationPopup() {
+    this.showValidationPopup = false;
   }
 
   /**
@@ -168,7 +231,6 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     this.simulationService.stopSimulation().subscribe({
       next: () => {
         console.log('⏹️  Simulation stopped');
-        // Check snapshot status immediately after stopping
         setTimeout(() => {
           this.checkSnapshotStatus();
         }, 500);
@@ -207,7 +269,7 @@ export class PlaybackControlsComponent implements OnInit, OnDestroy {
     this.simulationService.clearSimulation().subscribe({
       next: () => {
         console.log('🧹 Simulation cleared');
-        window.location.reload(); // Reload to reset UI
+        window.location.reload();
       },
       error: (err) => {
         alert('Failed to clear simulation: ' + (err.error?.error || 'Unknown error'));

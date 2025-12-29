@@ -62,6 +62,25 @@
     <div
       class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:24px_24px] opacity-60 pointer-events-none">
     </div>
+    <!-- Statistics Display -->
+      <div class="absolute top-4 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1 z-10">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+          <span class="text-slate-600">Queues: <strong>{{ queues.length }}</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span class="text-slate-600">Machines: <strong>{{ machines.length }}</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+          <span class="text-slate-600">Connections: <strong>{{ connections.length }}</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+          <span class="text-slate-600">Zoom: <strong>{{ (scale * 100).toFixed(0) }}%</strong></span>
+        </div>
+      </div>
 
     <!-- Zoom Controls -->
     <app-zoom-controls (zoomIn)="handleZoomIn()" (zoomOut)="handleZoomOut()" (resetZoom)="handleResetZoom()">
@@ -95,25 +114,7 @@
         </span>
       </div>
 
-      <!-- Statistics Display -->
-      <div class="absolute top-4 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1 z-10">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-          <span class="text-slate-600">Queues: <strong>{{ queues.length }}</strong></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-green-500"></span>
-          <span class="text-slate-600">Machines: <strong>{{ machines.length }}</strong></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-          <span class="text-slate-600">Connections: <strong>{{ connections.length }}</strong></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-          <span class="text-slate-600">Zoom: <strong>{{ (scale * 100).toFixed(0) }}%</strong></span>
-        </div>
-      </div>
+      
     </div>
   </main>
 
