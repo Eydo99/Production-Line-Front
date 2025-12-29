@@ -61,10 +61,12 @@ export class ConnectionLineComponent {
       return '';
     }
 
-    const startX = conn.fromX + 144; // Queue width + connector offset
-    const startY = conn.fromY + 64;  // Half height
+    // Queue node: w-44 (176px) × h-36 (144px), center Y = 72px
+    // Machine node: w-44 (176px) × h-40 (160px), center Y = 80px
+    const startX = conn.fromX + 176; // Queue width (w-44 = 11rem = 176px)
+    const startY = conn.fromY + 72;  // Queue half height (h-36 = 9rem = 144px / 2)
     const endX = conn.toX - 6;       // Machine connector offset
-    const endY = conn.toY + 64;
+    const endY = conn.toY + 80;      // Machine half height (h-40 = 10rem = 160px / 2)
 
     // Curved path for better visuals
     const midX = (startX + endX) / 2;
