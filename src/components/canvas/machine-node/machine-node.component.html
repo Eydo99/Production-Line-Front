@@ -1,14 +1,14 @@
 <div
-  class="absolute w-36 h-32 rounded-xl border-2 shadow-md
+  class="absolute w-44 h-40 rounded-xl border-2 shadow-md
          hover:border-primary/50 hover:shadow-lg transition-all
-         cursor-grab select-none"
-  [class.border-slate-200]="machine.status === 'idle'"
-  [class.border-blue-400]="machine.status === 'processing'"
+         cursor-grab select-none overflow-hidden"
+  [class.border-slate-300]="machine.status === 'idle'"
+  [class.border-blue-500]="machine.status === 'processing'"
   [class.border-yellow-400]="machine.status === 'FLASHING'"
   [class.animate-pulse]="machine.status === 'FLASHING'"
   [style.left.px]="machine.x"
   [style.top.px]="machine.y"
-  [style.background-color]="getMachineColor() + '20'"
+  [style.background-color]="getMachineColor() + '15'"
 
   appDraggable
   appSelectable
@@ -17,28 +17,28 @@
 
   <!-- HEADER -->
   <div
-    class="h-8 rounded-t-[10px] border-b
+    class="h-10 rounded-t-[10px] border-b
            flex items-center justify-between px-3 transition-all"
-    [style.background-color]="getMachineColor() + '30'"
+    [style.background-color]="getMachineColor() + '25'"
     [style.border-color]="getMachineColor() + '40'">
-    <span class="text-xs font-bold tracking-wider transition-colors"
+    <span class="text-sm font-bold tracking-wider transition-colors"
           [style.color]="getMachineColor()">
       {{ machine.name }}
     </span>
     <div
-      class="w-2 h-2 rounded-full transition-all"
+      class="w-2.5 h-2.5 rounded-full transition-all"
       [ngClass]="getStatusColor()">
     </div>
   </div>
 
   <!-- BODY -->
-  <div class="flex-1 flex flex-col items-center justify-center p-2">
+  <div class="h-[calc(100%-2.5rem)] flex flex-col items-center justify-center p-3 space-y-2">
 
     <!-- MACHINE ICON -->
-    <div class="mb-2"
+    <div class="mb-1"
          [class.animate-bounce]="machine.status === 'FLASHING'">
       <svg
-        class="w-10 h-10 transition-colors duration-300"
+        class="w-12 h-12 transition-colors duration-300"
         [style.color]="getMachineColor()"
         fill="none"
         stroke="currentColor"
@@ -54,7 +54,7 @@
 
     <!-- STATUS TEXT -->
     <span
-      class="text-[10px] font-semibold uppercase tracking-wide transition-colors"
+      class="text-xs font-bold uppercase tracking-wide transition-colors"
       [ngClass]="{
         'text-green-600': machine.status === 'idle',
         'text-blue-600': machine.status === 'processing',
@@ -64,39 +64,41 @@
     </span>
 
     <!-- SERVICE TIME -->
-    <span class="text-[9px] text-slate-400 mt-1">
-      {{ getServiceTimeSeconds() }}s
+    <span class="text-[11px] text-slate-500 font-medium">
+      ⏱ {{ getServiceTimeSeconds() }}s process time
     </span>
 
     <!-- CURRENT PRODUCT INDICATOR -->
     <span
       *ngIf="machine.status === 'processing'"
-      class="text-[9px] text-slate-500 mt-0.5 font-medium">
-      🔧 Processing
+      class="text-[10px] text-blue-600 font-semibold animate-pulse">
+      🔧 Processing...
     </span>
 
     <!-- COMPLETION INDICATOR -->
     <span
       *ngIf="machine.status === 'FLASHING'"
-      class="text-[9px] text-yellow-600 mt-0.5 font-medium animate-pulse">
+      class="text-[11px] text-yellow-600 font-bold animate-pulse">
       ✨ Complete!
     </span>
   </div>
 
   <!-- INPUT CONNECTOR (LEFT) -->
   <div
-    class="absolute top-1/2 -left-1.5 w-3 h-3 bg-white
-           border-2 rounded-full -translate-y-1/2 transition-colors"
-    [class.border-green-400]="machine.inputQueue"
-    [class.border-slate-300]="!machine.inputQueue">
+    class="absolute top-1/2 -left-1.5 w-4 h-4 bg-white
+           border-2 rounded-full -translate-y-1/2 transition-colors shadow-sm z-10"
+    [class.border-green-500]="machine.inputQueue"
+    [class.border-slate-300]="!machine.inputQueue"
+    title="Input">
   </div>
 
   <!-- OUTPUT CONNECTOR (RIGHT) -->
   <div
-    class="absolute top-1/2 -right-1.5 w-3 h-3 bg-white
-           border-2 rounded-full -translate-y-1/2 transition-colors"
-    [class.border-green-400]="machine.outputQueue"
-    [class.border-slate-300]="!machine.outputQueue">
+    class="absolute top-1/2 -right-1.5 w-4 h-4 bg-white
+           border-2 rounded-full -translate-y-1/2 transition-colors shadow-sm z-10"
+    [class.border-blue-500]="machine.outputQueue"
+    [class.border-slate-300]="!machine.outputQueue"
+    title="Output">
   </div>
 
 </div>

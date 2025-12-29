@@ -3,9 +3,18 @@ import { Subject, BehaviorSubject } from 'rxjs';
 import Stomp from 'stompjs';
 import SockJS from 'sockjs-client';
 
+// Product DTO matching backend
+export interface ProductDTO {
+  id: string;
+  color: string;
+  createdAt: number;
+}
+
+// Queue update with products
 export interface QueueUpdate {
   queueId: string;
   currentSize: number;
+  products: ProductDTO[]; // Actual products with colors
 }
 
 export interface MachineUpdate {
@@ -39,10 +48,11 @@ export class WebSocketService {
       console.log('✅ Connected to WebSocket');
       this.ngZone.run(() => this.connectionStatus$.next(true));
 
-      // Subscribe to queue updates
+      // Subscribe to queue updates (now with product colors)
       this.stompClient.subscribe('/topic/queues', (message: any) => {
-        const update = JSON.parse(message.body);
+        const update: QueueUpdate = JSON.parse(message.body);
         console.log('📦 Queue Update (WS):', update);
+        console.log('   Products:', update.products?.map(p => `${p.id}: ${p.color}`));
         this.ngZone.run(() => {
           this.queueUpdates$.next(update);
         });
@@ -50,7 +60,7 @@ export class WebSocketService {
 
       // Subscribe to machine updates
       this.stompClient.subscribe('/topic/machines', (message: any) => {
-        const update = JSON.parse(message.body);
+        const update: MachineUpdate = JSON.parse(message.body);
         console.log('⚙️ Machine Update (WS):', update);
         this.ngZone.run(() => {
           this.machineUpdates$.next(update);
@@ -87,5 +97,4 @@ export class WebSocketService {
       this.stompClient.send('/app/ping', {}, JSON.stringify({ type: 'ping' }));
     }
   }
-
 }

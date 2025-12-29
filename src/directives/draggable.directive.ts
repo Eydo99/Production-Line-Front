@@ -5,7 +5,8 @@ import {
   HostListener,
   Output,
   OnDestroy,
-  Input
+  Input,
+  Renderer2
 } from '@angular/core';
 
 @Directive({
@@ -14,52 +15,87 @@ import {
 })
 export class DraggableDirective implements OnDestroy {
   @Output() dragEnd = new EventEmitter<{ x: number; y: number }>();
-  @Input() canvasScale = 1; // Compensate for zoom
-  @Input() canvasPanX = 0;   // Compensate for pan X
-  @Input() canvasPanY = 0;   // Compensate for pan Y
+  @Input() canvasScale = 1;
+  @Input() canvasPanX = 0;
+  @Input() canvasPanY = 0;
 
   private dragging = false;
   private startX = 0;
   private startY = 0;
   private initialLeft = 0;
   private initialTop = 0;
+  private moveListener?: () => void;
+  private upListener?: () => void;
+  private touchMoveListener?: () => void;
+  private touchEndListener?: () => void;
 
-  constructor(private el: ElementRef<HTMLElement>) {
-    this.el.nativeElement.style.position = 'absolute';
-    this.el.nativeElement.style.cursor = 'grab';
+  constructor(
+    private el: ElementRef<HTMLElement>,
+    private renderer: Renderer2
+  ) {
+    this.renderer.setStyle(this.el.nativeElement, 'position', 'absolute');
+    this.renderer.setStyle(this.el.nativeElement, 'cursor', 'grab');
+    this.renderer.setStyle(this.el.nativeElement, 'touch-action', 'none');
   }
 
   @HostListener('mousedown', ['$event'])
   onMouseDown(event: MouseEvent) {
-    // Prevent dragging if clicking on a button or other interactive element
-    if ((event.target as HTMLElement).tagName === 'BUTTON') {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT') {
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
 
+    this.startDrag(event.clientX, event.clientY);
+  }
+
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent) {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const touch = event.touches[0];
+    this.startDrag(touch.clientX, touch.clientY);
+  }
+
+  private startDrag(clientX: number, clientY: number) {
     this.dragging = true;
-    this.startX = event.clientX;
-    this.startY = event.clientY;
+    this.startX = clientX;
+    this.startY = clientY;
 
     // Get current position
     this.initialLeft = this.el.nativeElement.offsetLeft;
     this.initialTop = this.el.nativeElement.offsetTop;
 
-    this.el.nativeElement.style.cursor = 'grabbing';
-    this.el.nativeElement.style.userSelect = 'none';
-    this.el.nativeElement.style.zIndex = '1000';
+    // Apply dragging styles
+    this.renderer.setStyle(this.el.nativeElement, 'cursor', 'grabbing');
+    this.renderer.setStyle(this.el.nativeElement, 'user-select', 'none');
+    this.renderer.setStyle(this.el.nativeElement, 'z-index', '1000');
+    this.renderer.setStyle(this.el.nativeElement, 'transition', 'none');
 
-    // Add listeners to document so dragging works even if mouse leaves element
-    document.addEventListener('mousemove', this.onMouseMove, { passive: false });
-    document.addEventListener('mouseup', this.onMouseUp);
+    // Add listeners
+    this.moveListener = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => this.onMouseMove(e));
+    this.upListener = this.renderer.listen('document', 'mouseup', () => this.onMouseUp());
+    
+    this.touchMoveListener = this.renderer.listen('document', 'touchmove', (e: TouchEvent) => {
+      if (this.dragging && e.touches.length > 0) {
+        e.preventDefault();
+        this.onMouseMove({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY } as MouseEvent);
+      }
+    });
+    
+    this.touchEndListener = this.renderer.listen('document', 'touchend', () => this.onMouseUp());
   }
 
-  onMouseMove = (event: MouseEvent) => {
+  private onMouseMove(event: MouseEvent) {
     if (!this.dragging) return;
-
-    event.preventDefault();
 
     // Calculate mouse movement compensating for scale
     const dx = (event.clientX - this.startX) / this.canvasScale;
@@ -68,30 +104,40 @@ export class DraggableDirective implements OnDestroy {
     const newLeft = this.initialLeft + dx;
     const newTop = this.initialTop + dy;
 
-    // Apply new position
-    this.el.nativeElement.style.left = newLeft + 'px';
-    this.el.nativeElement.style.top = newTop + 'px';
-  };
+    // DIRECT position update - no transform!
+    this.renderer.setStyle(this.el.nativeElement, 'left', `${newLeft}px`);
+    this.renderer.setStyle(this.el.nativeElement, 'top', `${newTop}px`);
+  }
 
-  onMouseUp = () => {
+  private onMouseUp() {
     if (!this.dragging) return;
 
     this.dragging = false;
-    this.el.nativeElement.style.cursor = 'grab';
-    this.el.nativeElement.style.userSelect = '';
-    this.el.nativeElement.style.zIndex = '';
 
-    document.removeEventListener('mousemove', this.onMouseMove);
-    document.removeEventListener('mouseup', this.onMouseUp);
+    // Reset styles
+    this.renderer.setStyle(this.el.nativeElement, 'cursor', 'grab');
+    this.renderer.setStyle(this.el.nativeElement, 'user-select', '');
+    this.renderer.setStyle(this.el.nativeElement, 'z-index', '');
+    this.renderer.removeStyle(this.el.nativeElement, 'transition');
 
-    const left = this.el.nativeElement.offsetLeft;
-    const top = this.el.nativeElement.offsetTop;
+    // Get final position
+    const finalLeft = this.el.nativeElement.offsetLeft;
+    const finalTop = this.el.nativeElement.offsetTop;
 
-    this.dragEnd.emit({ x: left, y: top });
-  };
+    // Remove listeners
+    if (this.moveListener) this.moveListener();
+    if (this.upListener) this.upListener();
+    if (this.touchMoveListener) this.touchMoveListener();
+    if (this.touchEndListener) this.touchEndListener();
+
+    // Emit final position
+    this.dragEnd.emit({ x: finalLeft, y: finalTop });
+  }
 
   ngOnDestroy() {
-    document.removeEventListener('mousemove', this.onMouseMove);
-    document.removeEventListener('mouseup', this.onMouseUp);
+    if (this.moveListener) this.moveListener();
+    if (this.upListener) this.upListener();
+    if (this.touchMoveListener) this.touchMoveListener();
+    if (this.touchEndListener) this.touchEndListener();
   }
 }

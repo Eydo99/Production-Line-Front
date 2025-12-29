@@ -287,15 +287,26 @@ export class SimulationCanvasComponent implements OnInit, OnDestroy {
 
   private subscribeToUpdates() {
     // Queue updates subscription
-    this.queueUpdateSub = this.wsService.queueUpdates$.subscribe(update => {
-      // Robust lookup: Handle string vs number mismatch
-      const queue = this.queues.find(q => String(q.id) === String(update.queueId));
-      if (queue) {
-        queue.size = update.currentSize;
-        console.log(`📦 Updated ${queue.id} size: ${queue.size}`);
-        this.cd.detectChanges(); // Force Angular to check for changes
-      }
-    });
+ this.queueUpdateSub = this.wsService.queueUpdates$.subscribe(update => {
+    console.log('📦 Received queue update:', update);
+    
+    const queue = this.queues.find(q => String(q.id) === String(update.queueId));
+    if (queue) {
+      // Update size
+      queue.size = update.currentSize;
+      
+      // Update product list with actual colors from backend
+      queue.productList = update.products || [];
+      
+      console.log(`📦 Updated ${queue.id}:`, {
+        size: queue.size,
+        products: queue.productList.length,
+        colors: queue.productList.map(p => p.color)
+      });
+      
+      this.cd.detectChanges();
+    }
+  });
 
     // Machine updates subscription - THIS IS THE KEY PART
     this.machineUpdateSub = this.wsService.machineUpdates$.subscribe(update => {
